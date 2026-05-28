@@ -1,0 +1,170 @@
+﻿@model IEnumerable<Diplom.Models.RawMaterial>
+@{
+    ViewData["Title"] = "Склад сырья";
+}
+
+<div class="page-header">
+    <h1>📦 Склад сырья</h1>
+    <a href="/RawMaterials/Create" class="btn btn-primary">+ Новая партия</a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>№ партии</th>
+            <th>Дата поступления</th>
+            <th>Тип древесины</th>
+            <th>Объём (м³)</th>
+            <th>Сорт</th>
+            <th>Статус</th>
+            <th>Создал</th>
+            <th>Действия</th>
+
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.BatchNumber</td>
+                <td>@item.ArrivalDate.ToString("dd.MM.yyyy")</td>
+                <td>@item.WoodType</td>
+                <td>@item.Volume.ToString("N2")</td>
+                <td>
+
+                    @if (item.Grade == 1)
+                    {
+                        <span class="badge badge-grade-1">1 сорт</span>
+                    }
+                    else if (item.Grade == 2)
+                    {
+                        <span class="badge badge-grade-2">2 сорт</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-grade-3">3 сорт</span>
+                    }
+                </td>
+                <td><span class="badge badge-status">@item.Status</span></td>
+                <td>
+                    @if (item.CreatedByUser != null)
+                    {
+                        @(item.CreatedByUser.FullName ?? item.CreatedByUser.UserName)
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </td>
+                <td class="action-buttons">
+                    <a href="/RawMaterials/Edit/@item.Id" class="action-btn action-edit">✏️ Редактировать</a>
+                    <a href="/RawMaterials/Details/@item.Id" class="action-btn" style="color:#0d6efd;">👁️ Просмотр</a>
+                    <a href="/RawMaterials/Delete/@item.Id" class="action-btn action-delete">🗑️ Удалить</a>
+                    <a href="/RawMaterials/GenerateAct/@item.Id" class="btn btn-sm btn-outline-info">📄 Акт</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+
+        .data-table th, .data-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .data-table th {
+            background-color: #1e2a3a;
+            color: white;
+        }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+    }
+
+    .badge-grade-1 {
+        background: #d1e7dd;
+        color: #0a3622;
+    }
+
+    .badge-grade-2 {
+        background: #fff3cd;
+        color: #664d03;
+    }
+
+    .badge-grade-3 {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .badge-status {
+        background: #cfe2ff;
+        color: #084298;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+
+    .action-edit {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .action-delete {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        color: white;
+        padding: 6px 12px;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+
+    .text-muted {
+        color: #6c757d;
+    }
+</style>

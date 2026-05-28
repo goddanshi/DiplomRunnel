@@ -1,0 +1,745 @@
+﻿@model Diplom.Services.ForecastResult
+@{
+    ViewData["Title"] = "Прогнозирование отгрузок";
+    var metrics = ViewBag.Metrics as Diplom.Services.ModelMetrics;
+    
+    // Расчёт статистики по историческим данным
+    var historicalVolumes = Model.Historical?.Select(h => h.TotalVolume).ToList() ?? new List<float>();
+    var avgVolume = historicalVolumes.Any() ? historicalVolumes.Average() : 0;
+    var maxVolume = historicalVolumes.Any() ? historicalVolumes.Max() : 0;
+    var minVolume = historicalVolumes.Any() ? historicalVolumes.Min() : 0;
+    var lastYearAvg = historicalVolumes.TakeLast(12).Any() ? historicalVolumes.TakeLast(12).Average() : 0;
+    var previousYearAvg = historicalVolumes.SkipLast(12).TakeLast(12).Any() ? historicalVolumes.SkipLast(12).TakeLast(12).Average() : 0;
+    var growth = previousYearAvg > 0 ? ((lastYearAvg - previousYearAvg) / previousYearAvg) * 100 : 0;
+    
+    // Определение сезонных пиков
+    var monthlyAvg = historicalVolumes.Select((v, i) => new { Month = i % 12, Volume = v })
+        .GroupBy(x => x.Month)
+        .Select(g => new { Month = g.Key, AvgVolume = g.Average(x => x.Volume) })
+        .OrderByDescending(x => x.AvgVolume)
+        .ToList();
+    var peakMonths = monthlyAvg.Take(2).Select(m => GetMonthName(m.Month)).ToList();
+}
+
+<div class="page-header">
+    <h2>📈 Прогнозирование отгрузок шпона</h2>
+    <form method="post" action="/Forecast/Retrain" style="display:inline;">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-outline-primary">🔄 Переобучить модель</button>
+    </form>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<!-- БЛОК МЕТРИК (4 карточки) -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-icon">📊</div>
+        <div class="metric-value">@metrics?.Accuracy.ToString("F1")%</div>
+        <div class="metric-label">Точность модели</div>
+        <div class="metric-trend @(metrics?.Accuracy >= 70 ? "trend-up" : "trend-down")">
+            @if (metrics?.Accuracy >= 70)
+            {
+                <span>✅ Высокая</span>
+            }
+            else if (metrics?.Accuracy >= 50)
+            {
+                <span>⚠️ Средняя</span>
+            }
+            else
+            {
+                <span>❌ Низкая</span>
+            }
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-icon">📦</div>
+        <div class="metric-value">@avgVolume.ToString("F0")</div>
+        <div class="metric-label">Ср. отгрузка (м³/мес)</div>
+        <div class="metric-trend">
+            @if (growth > 5)
+            {
+                <span class="trend-up">📈 +@growth.ToString("F0")% к прошлому году</span>
+            }
+            else if (growth < -5)
+            {
+                <span class="trend-down">📉 @growth.ToString("F0")% к прошлому году</span>
+            }
+            else
+            {
+                <span class="trend-stable">➡️ Стабильно</span>
+            }
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-icon">📈</div>
+        <div class="metric-value">@maxVolume.ToString("F0")</div>
+        <div class="metric-label">Максимум (м³/мес)</div>
+        <div class="metric-sub">мин: @minVolume.ToString("F0") м³</div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-icon">🌙</div>
+        <div class="metric-value">@string.Join(", ", peakMonths.Take(2))</div>
+        <div class="metric-label">Пик сезона</div>
+        <div class="metric-sub">Спрос выше среднего</div>
+    </div>
+</div>
+
+<!-- ОСНОВНАЯ СЕТКА: ГРАФИК + ДЕТАЛЬНЫЙ ПРОГНОЗ -->
+<div class="dashboard-grid">
+    <div class="card chart-card">
+        <div class="card-header">
+            <h3>📊 Прогноз отгрузок на 3 месяца</h3>
+            <button id="infoBtn" class="btn-icon-info" title="Как читать график?">❔</button>
+        </div>
+        <div class="card-body">
+            <canvas id="forecastChart" style="width:100%; height:400px;"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>📋 Детальный прогноз</h3>
+        </div>
+        <div class="card-body">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Месяц</th>
+                        <th>Прогноз (м³)</th>
+                        <th>Рекомендация</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var pred in Model.Predictions)
+                    {
+                        var volume = pred.PredictedVolume;
+                        string recommendation;
+                        if (volume > avgVolume * 1.2)
+                            recommendation = "🔴 Высокий спрос, увеличьте запас";
+                        else if (volume < avgVolume * 0.8)
+                            recommendation = "🟢 Низкий спрос, скорректируйте производство";
+                        else
+                            recommendation = "🟡 Стабильный спрос, поддерживайте норму";
+                        
+                        <tr>
+                            <td>@pred.Month.ToString("MMMM yyyy")</td>
+                            <td><strong>@volume.ToString("F2")</strong></td>
+                            <td><span class="recommendation @(volume > avgVolume * 1.2 ? "high" : (volume < avgVolume * 0.8 ? "low" : "stable"))">@recommendation</span></td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Итого за 3 месяца:</th>
+                        <th>@Model.TotalPredictedVolume.ToString("F2") м³</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- БЛОК РЕКОМЕНДАЦИЙ -->
+<div class="recommendations-card">
+    <div class="recommendations-header">
+        <h3>💡 Рекомендации по управлению запасами</h3>
+    </div>
+    <div class="recommendations-body">
+        <div class="recommendation-item">
+            <div class="rec-icon">📅</div>
+            <div class="rec-content">
+                <strong>Планирование производства</strong>
+                <p>На основе прогноза, рекомендуемый объём производства на следующие 3 месяца: <strong>@Model.TotalPredictedVolume.ToString("F0") м³</strong></p>
+            </div>
+        </div>
+        <div class="recommendation-item">
+            <div class="rec-icon">📦</div>
+            <div class="rec-content">
+                <strong>Складские запасы</strong>
+                <p>Текущий средний объём отгрузок @avgVolume.ToString("F0") м³/мес. Рекомендуемый страховой запас: <strong>@(avgVolume * 1.5 > 0 ? (avgVolume * 1.5).ToString("F0") : "0") м³</strong></p>
+            </div>
+        </div>
+        @if (peakMonths.Any())
+        {
+            <div class="recommendation-item">
+                <div class="rec-icon">🌙</div>
+                <div class="rec-content">
+                    <strong>Сезонность</strong>
+                    <p>Пик спроса приходится на @string.Join(" и ", peakMonths). Рекомендуется увеличить запас на @(((int)(avgVolume * 0.3)).ToString()) м³ в этот период.</p>
+                </div>
+            </div>
+        }
+        <div class="recommendation-item">
+            <div class="rec-icon">📈</div>
+            <div class="rec-content">
+                <strong>Тренд спроса</strong>
+                <p>@(growth > 0 ? $"Спрос растёт (+{growth:F0}% к прошлому году). Рекомендуется расширение производства." : (growth < 0 ? $"Спрос снижается ({Math.Abs(growth):F0}% к прошлому году). Рекомендуется оптимизация запасов." : "Спрос стабилен. Поддерживайте текущий уровень производства."))</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-close">&times;</span>
+            <h3>📊 Как читать график прогноза</h3>
+        </div>
+        <div class="modal-body">
+            <div class="info-section">
+                <div class="info-color">
+                    <div class="color-box" style="background: #2d6a4f;"></div>
+                    <div class="color-line" style="background: #2d6a4f; height: 3px; width: 30px;"></div>
+                    <span><strong>🟢 Зелёная линия + зелёные точки</strong> – Исторические отгрузки</span>
+                </div>
+                <p>Реальные данные об отгрузках за прошедшие месяцы. Каждая зелёная точка соответствует фактическому объёму отгрузки за конкретный месяц. Линия соединяет точки, показывая динамику спроса.</p>
+            </div>
+            <div class="info-section">
+                <div class="info-color">
+                    <div class="color-box" style="background: #0d6efd; border: 2px dashed #0d6efd;"></div>
+                    <div class="color-line" style="background: #0d6efd; height: 3px; width: 30px; border: 1px dashed #0d6efd;"></div>
+                    <span><strong>🔵 Синяя пунктирная линия + жёлтые точки</strong> – Прогноз</span>
+                </div>
+                <p>Предсказание модели на будущие месяцы. Рассчитывается на основе исторических данных с помощью алгоритма SSA (анализ сингулярного спектра). Жёлтые точки показывают прогнозируемые значения.</p>
+            </div>
+            <div class="info-section">
+                <div class="info-color">
+                    <div class="color-box" style="background: #ffc107;"></div>
+                    <span><strong>🟡 Жёлтые точки</strong> – Прогнозные значения</span>
+                </div>
+                <p>Конкретные прогнозируемые объёмы отгрузок на каждый месяц. Наведение на точку показывает точное значение в м³.</p>
+            </div>
+            <hr />
+            <div class="info-section">
+                <h4>📈 Как интерпретировать график:</h4>
+                <ul>
+                    <li><strong>Зелёная линия заканчивается в последний месяц с реальными данными</strong> (май 2026)</li>
+                    <li><strong>Синяя пунктирная линия начинается с первого прогнозного месяца</strong> (июнь 2026)</li>
+                    <li><strong>Разрыв между линиями</strong> показывает границу между историей и прогнозом</li>
+                    <li><strong>Точность модели</strong> – чем выше процент, тем надёжнее прогноз</li>
+                    <li><strong>Рекомендации</strong> – помогают планировать запасы и производство</li>
+                </ul>
+            </div>
+            <div class="info-note">
+                <strong>💡 Примечание:</strong> Прогноз строится на основе данных за последние 24-36 месяцев. Модель учитывает сезонность (летом спрос выше, зимой ниже). Жёлтые точки – это предсказанные значения, а не фактические.
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+
+    .info-color {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+.color-line {
+    border-radius: 2px;
+}
+
+    /* Кнопка информации */
+.btn-icon-info {
+    background: #e2e8f0;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #475569;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 10px;
+}
+.btn-icon-info:hover {
+    background: #2d6a4f;
+    color: white;
+    transform: scale(1.05);
+}
+
+/* Модальное окно */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(3px);
+}
+.modal-content {
+    background-color: white;
+    margin: 8% auto;
+    padding: 0;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 550px;
+    box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+    animation: modalFadeIn 0.3s ease;
+}
+@@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #1e2a3a 0%, #2a3a4a 100%);
+    border-radius: 20px 20px 0 0;
+}
+.modal-header h3 {
+    margin: 0;
+    color: white;
+}
+.modal-close {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.modal-close:hover {
+    color: #ffc107;
+}
+.modal-body {
+    padding: 24px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+.info-section {
+    margin-bottom: 20px;
+}
+.info-color {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.color-box {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+}
+.info-section h4 {
+    margin: 16px 0 8px 0;
+    color: #1e2a3a;
+}
+.info-section ul {
+    margin: 8px 0 0 20px;
+    color: #475569;
+    line-height: 1.6;
+}
+.info-note {
+    background: #f0f9ff;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    color: #0369a1;
+    margin-top: 20px;
+    border-left: 4px solid #0ea5e9;
+}
+hr {
+    margin: 16px 0;
+    border-color: #e2e8f0;
+}
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .metric-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: 1px solid #e2e8f0;
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    .metric-icon {
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+    .metric-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e2a3a;
+    }
+    .metric-label {
+        font-size: 13px;
+        color: #64748b;
+        margin-top: 4px;
+    }
+    .metric-trend {
+        font-size: 12px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #e2e8f0;
+    }
+    .metric-sub {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 6px;
+    }
+    .trend-up { color: #10b981; }
+    .trend-down { color: #ef4444; }
+    .trend-stable { color: #f59e0b; }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 30px;
+    }
+    
+    .recommendations-card {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-radius: 20px;
+        border: 1px solid #bae6fd;
+        overflow: hidden;
+        margin-top: 20px;
+    }
+    .recommendations-header {
+        padding: 16px 24px;
+        background: rgba(255,255,255,0.5);
+        border-bottom: 1px solid #bae6fd;
+    }
+    .recommendations-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #0369a1;
+    }
+    .recommendations-body {
+        padding: 20px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .recommendation-item {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+    }
+    .rec-icon {
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+    .rec-content {
+        flex: 1;
+    }
+    .rec-content strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #1e2a3a;
+    }
+    .rec-content p {
+        margin: 0;
+        font-size: 13px;
+        color: #475569;
+    }
+    
+    .recommendation {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+    .recommendation.high {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    .recommendation.low {
+        background: #d1fae5;
+        color: #059669;
+    }
+    .recommendation.stable {
+        background: #fef3c7;
+        color: #d97706;
+    }
+    
+    .card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+    .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+    .card-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    .card-body {
+        padding: 20px;
+    }
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #e2e8f0;
+        text-align: left;
+    }
+    .data-table th {
+        background: #f8fafc;
+        font-weight: 600;
+    }
+    .data-table tfoot {
+        background: #f8fafc;
+        font-weight: 600;
+    }
+    .alert-success { background: #d1e7dd; color: #0a3622; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+    .alert-danger { background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+    .btn-outline-primary { background: transparent; border: 1px solid #0d6efd; color: #0d6efd; padding: 6px 16px; border-radius: 8px; cursor: pointer; }
+    .btn-outline-primary:hover { background: #0d6efd; color: white; }
+    
+    @@media (max-width: 768px) {
+        .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+        .dashboard-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+@functions {
+    private string GetMonthName(int month)
+    {
+        string[] names = { "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь" };
+        return names[month];
+    }
+}
+
+<script>
+    // Модальное окно с информацией
+    var modal = document.getElementById('infoModal');
+    var btn = document.getElementById('infoBtn');
+    var span = document.getElementsByClassName('modal-close')[0];
+
+    if (btn) {
+        btn.onclick = function() {
+            modal.style.display = 'block';
+        }
+    }
+
+    if (span) {
+        span.onclick = function() {
+            modal.style.display = 'none';
+        }
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const historical = @Html.Raw(Json.Serialize(Model.Historical));
+        const predictions = @Html.Raw(Json.Serialize(Model.Predictions));
+        
+        if (!historical || historical.length === 0) {
+            console.warn('Нет исторических данных');
+            return;
+        }
+        
+        // ОПРЕДЕЛЯЕМ ПОСЛЕДНЮЮ РЕАЛЬНУЮ ДАТУ ОТГРУЗКИ
+        const lastRealDate = new Date(Math.max(...historical.map(h => new Date(h.date))));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // ФИЛЬТРУЕМ ИСТОРИЧЕСКИЕ ДАННЫЕ ТОЛЬКО ДО ПОСЛЕДНЕЙ РЕАЛЬНОЙ ОТГРУЗКИ
+        const filteredHistorical = historical.filter(item => {
+            const itemDate = new Date(item.date);
+            return itemDate <= lastRealDate;
+        });
+        
+        // Берём последние 12 месяцев истории (до последней отгрузки)
+        const last12Months = filteredHistorical.slice(-12);
+        
+        // ПОДГОТОВКА ДАННЫХ ДЛЯ ГРАФИКА
+        const labels = [];
+        const historicalData = [];
+        const predictedData = [];
+        
+        // Добавляем исторические данные
+        last12Months.forEach(item => {
+            const date = new Date(item.date);
+            labels.push(date.toLocaleDateString('ru', { month: 'short', year: 'numeric' }));
+            historicalData.push(item.totalVolume);
+            predictedData.push(null); // null для разрыва линии
+        });
+        
+        // Добавляем прогнозные данные (только будущие месяцы)
+        if (predictions && predictions.length > 0) {
+            predictions.forEach((pred, index) => {
+                const predDate = new Date(pred.month);
+                const monthLabel = predDate.toLocaleDateString('ru', { month: 'short', year: 'numeric' });
+                labels.push(monthLabel);
+                historicalData.push(null); // null для разрыва линии
+                predictedData.push(pred.predictedVolume);
+            });
+        }
+        
+        const ctx = document.getElementById('forecastChart').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '📊 Исторические отгрузки (реальные данные)',
+                        data: historicalData,
+                        borderColor: '#2d6a4f',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2.5,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#2d6a4f',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 7,
+                        tension: 0.2,
+                        fill: false,
+                        spanGaps: false
+                    },
+                    {
+                        label: '🔮 Прогноз отгрузок (модель SSA)',
+                        data: predictedData,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2.5,
+                        borderDash: [8, 6],
+                        pointRadius: 5,
+                        pointBackgroundColor: '#ffc107',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 7,
+                        tension: 0.2,
+                        fill: false,
+                        spanGaps: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: '#1e2a3a',
+                        titleColor: '#ffffff',
+                        bodyColor: '#cbd5e1',
+                        borderColor: '#2d6a4f',
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        padding: 10,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                let value = context.raw;
+                                if (value !== null && value !== undefined && value !== 0) {
+                                    return `${label}: ${value.toFixed(2)} м³`;
+                                }
+                                return null;
+                            },
+                            afterBody: function(context) {
+                                const dataPoint = context[0];
+                                if (dataPoint.datasetIndex === 1 && dataPoint.raw) {
+                                    return '💡 Прогнозное значение';
+                                } else if (dataPoint.datasetIndex === 0 && dataPoint.raw) {
+                                    return '✅ Фактические данные';
+                                }
+                                return null;
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Объём отгрузок (м³)',
+                            font: { weight: 'bold', size: 12 }
+                        },
+                        beginAtZero: true,
+                        grid: { color: '#e2e8f0' }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Период (месяцы)',
+                            font: { weight: 'bold', size: 12 }
+                        },
+                        grid: { display: false },
+                        ticks: { maxRotation: 45, minRotation: 45 }
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 5,
+                        hoverRadius: 7
+                    },
+                    line: {
+                        tension: 0.2
+                    }
+                }
+            }
+        });
+    });
+</script>

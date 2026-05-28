@@ -1,0 +1,100 @@
+﻿@model Diplom.Models.WoodMovement
+@{
+    ViewData["Title"] = "Редактирование прихода древесины";
+}
+<h2>✏️ Редактирование прихода древесины</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form method="post" id="editForm">
+    @Html.AntiForgeryToken()
+
+    <div class="form-group">
+        <label>Тип древесины</label>
+        <select name="woodStackId" class="form-control" required>
+            @foreach (var stack in ViewBag.Stacks)
+            {
+                <option value="@stack.Id" @(stack.Id == Model.WoodStackId ? "selected" : "")>
+                    @stack.WoodType (остаток: @stack.CurrentVolume.ToString("F2") м³)
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Поставщик</label>
+        <input type="text" name="supplier" class="form-control" value="@Model.Supplier" placeholder="Наименование поставщика" />
+    </div>
+
+    <div class="form-group">
+        <label>Длина (м)</label>
+        <input type="text" step="0.01" name="length" class="form-control" value="@(Model.Length != null ? Model.Length.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required />
+    </div>
+
+    <div class="form-group">
+        <label>Ширина (м)</label>
+        <input type="text" step="0.01" name="width" class="form-control" value="@(Model.Width != null ? Model.Width.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required />
+    </div>
+
+    <div class="form-group">
+        <label>Высота (м)</label>
+        <input type="text" step="0.01" name="height" class="form-control" value="@(Model.Height != null ? Model.Height.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required />
+    </div>
+
+    <div class="form-group">
+        <label>Коэффициент полнодревесности (0.5–0.8)</label>
+        <input type="text" step="0.01" name="coefficient" class="form-control"
+               value="@(Model.Coefficient != null ? Model.Coefficient.Value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) : "0.65")" required />
+        <small class="text-muted">Используйте точку или запятую</small>
+    </div>
+
+    <div class="form-group">
+        <label>Дата и время</label>
+        <input type="datetime-local" name="movementDate" class="form-control"
+               value="@Model.MovementDate.ToString("yyyy-MM-ddTHH:mm")" readonly />
+        <small class="text-muted">Дата не может быть изменена</small>
+    </div>
+
+    <div class="form-group">
+        <label>Комментарий</label>
+        <textarea name="comment" class="form-control" rows="2">@Model.Comment</textarea>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Текущий объём в системе:</strong> @Model.Volume.ToString("F2") м³<br />
+        <strong>Новый объём после сохранения:</strong> <span id="newVolume">@Model.Volume.ToString("F2")</span> м³ (пересчитается автоматически)
+    </div>
+
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">💾 Сохранить изменения</button>
+        <a href="/WoodMovements" class="btn btn-secondary">❌ Отмена</a>
+    </div>
+</form>
+
+<script>
+    function recalculate() {
+        function toNumber(value) {
+            if (!value) return 0;
+            value = value.toString().trim().replace(',', '.');
+            var num = parseFloat(value);
+            return isNaN(num) ? 0 : num;
+        }
+
+        var length = toNumber(document.querySelector('[name="length"]').value);
+        var width = toNumber(document.querySelector('[name="width"]').value);
+        var height = toNumber(document.querySelector('[name="height"]').value);
+        var coefficient = toNumber(document.querySelector('[name="coefficient"]').value);
+        var volume = length * width * height * coefficient;
+
+        document.getElementById('newVolume').innerText = volume.toFixed(2);
+    }
+
+    document.querySelector('[name="length"]').addEventListener('input', recalculate);
+    document.querySelector('[name="width"]').addEventListener('input', recalculate);
+    document.querySelector('[name="height"]').addEventListener('input', recalculate);
+    document.querySelector('[name="coefficient"]').addEventListener('input', recalculate);
+    recalculate();
+</script>

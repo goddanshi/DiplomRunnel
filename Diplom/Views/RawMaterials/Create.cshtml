@@ -1,0 +1,61 @@
+﻿@model Diplom.Models.RawMaterial
+@{
+    ViewData["Title"] = "Новая партия";
+}
+<h2>➕ Новая партия сырья</h2>
+<form method="post" action="/RawMaterials/Create">
+    @Html.AntiForgeryToken()
+
+    <!-- Номер партии генерируется автоматически, поэтому показываем как только для чтения -->
+    <div class="form-group">
+        <label>Номер партии</label>
+        <input name="BatchNumber" class="form-control" value="@Model.BatchNumber" readonly disabled />
+        <small class="form-text text-muted">Номер присвоится автоматически при сохранении.</small>
+    </div>
+
+    <div class="form-group">
+        <label>Дата поступления *</label>
+        <input name="ArrivalDate" class="form-control" type="date" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+    </div>
+
+    <div class="form-group">
+        <label>Тип древесины</label>
+        <input name="WoodType" class="form-control" value="Берёза" />
+    </div>
+
+    <div class="form-group">
+        <label>Объём (м³) *</label>
+        <input name="Volume" class="form-control" step="0.01" required />
+    </div>
+
+    <div class="form-group">
+        <label>Сорт</label>
+        <select name="Grade" class="form-control">
+            <option value="1">1 сорт</option>
+            <option value="2">2 сорт</option>
+            <option value="3">3 сорт</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Поставщик</label>
+        <input name="Supplier" class="form-control" />
+    </div>
+
+    <div class="form-group">
+        <label>Статус</label>
+        <select name="Status" class="form-control">
+            <option>На складе</option>
+            <option>В проварке</option>
+            <option>В производстве</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Комментарий</label>
+        <textarea name="Comment" class="form-control"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a href="/RawMaterials" class="btn btn-secondary">← Назад</a>
+</form>

@@ -1,0 +1,50 @@
+﻿@model Diplom.Models.WoodMovement
+@{
+    ViewData["Title"] = "Редактирование движения";
+}
+<h2>✏️ Редактирование движения</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form method="post" action="/WoodMovements/Edit/@Model.Id">
+    @Html.AntiForgeryToken()
+
+    <div class="form-group">
+        <label>Тип древесины</label>
+        <select name="woodStackId" class="form-control" required>
+            @foreach (var stack in ViewBag.Stacks)
+            {
+                <option value="@stack.Id" @(stack.Id == Model.WoodStackId ? "selected" : "")>
+                    @stack.WoodType (остаток: @stack.CurrentVolume.ToString("F2") м³)
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Объём (м³)</label>
+        <input type="number" step="0.01" name="volume" class="form-control" value="@Model.Volume" required />
+    </div>
+
+    <div class="form-group">
+        <label>Поставщик</label>
+        <input type="text" name="supplier" class="form-control" value="@Model.Supplier" placeholder="Наименование поставщика" />
+    </div>
+
+    <div class="form-group">
+        <label>Дата и время</label>
+        <input type="datetime-local" name="movementDate" class="form-control"
+               value="@Model.MovementDate.ToString("yyyy-MM-ddTHH:mm")" required />
+    </div>
+
+    <div class="form-group">
+        <label>Комментарий</label>
+        <textarea name="comment" class="form-control" rows="2">@Model.Comment</textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">💾 Сохранить изменения</button>
+    <a href="/WoodMovements" class="btn btn-secondary">❌ Отмена</a>
+</form>

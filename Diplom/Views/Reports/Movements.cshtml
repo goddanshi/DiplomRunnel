@@ -1,0 +1,74 @@
+﻿@model IEnumerable<Diplom.Models.WoodMovement>
+@{
+    ViewData["Title"] = "Движения по штабелям";
+    var startDate = ViewBag.StartDate;
+    var endDate = ViewBag.EndDate;
+    var woodTypes = ViewBag.WoodTypes as List<string>;
+    var selectedWoodType = ViewBag.SelectedWoodType;
+}
+
+<div class="page-header">
+    <h2>📋 Движения по штабелям</h2>
+    <a href="/Reports" class="btn btn-secondary">← Все отчёты</a>
+</div>
+
+<div class="filter-card">
+    <form method="get" class="filter-form">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>С даты:</label>
+                <input type="date" name="startDate" value="@startDate" class="form-control" />
+            </div>
+            <div class="filter-group">
+                <label>По дату:</label>
+                <input type="date" name="endDate" value="@endDate" class="form-control" />
+            </div>
+            <div class="filter-group">
+                <label>Тип древесины:</label>
+                <select name="woodType" class="form-control">
+                    <option value="">Все</option>
+                    @foreach (var wt in woodTypes)
+                    {
+                        <option value="@wt" @(wt == selectedWoodType ? "selected" : "")>@wt</option>
+                    }
+                </select>
+            </div>
+            <div class="filter-group">
+                <button type="submit" class="btn btn-primary">🔍 Применить фильтр</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="data-table">
+            <thead>
+                <tr><th>Дата</th><th>Тип</th><th>Тип движения</th><th>Объём (м³)</th><th>Поставщик</th><th>Пользователь</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var m in Model)
+                {
+                    <tr>
+                        <td>@m.MovementDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@m.WoodStack?.WoodType</td>
+                        <td>@(m.MovementType == "Income" ? "➕ Приход" : "➖ Расход")</td>
+                        <td>@m.Volume.ToString("F2")</td>
+                        <td>@m.Supplier</td>
+                        <td>@(m.CreatedByUser?.FullName ?? m.CreatedByUser?.UserName)</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot><tr><th colspan="3">Итого:</th><th>@Model.Sum(m => m.Volume).ToString("F2") м³</th><th colspan="2"></th></tr></tfoot>
+        </table>
+    </div>
+</div>
+
+<style>
+    .filter-card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
+    .filter-form { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .filter-group label { font-size: 12px; font-weight: 600; color: #475569; }
+    .form-control { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; }
+    .btn-primary { background: #2d6a4f; color: white; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; }
+</style>

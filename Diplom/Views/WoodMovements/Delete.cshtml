@@ -1,0 +1,19 @@
+﻿@model Diplom.Models.WoodMovement
+@{
+    ViewData["Title"] = "Удаление движения";
+}
+<h2>🗑️ Удаление движения</h2>
+<p>Вы уверены, что хотите удалить движение?</p>
+<dl>
+    <dt>Дата</dt>
+    <dd>@Model.MovementDate</dd>
+    <dt>Штабель</dt>
+    <dd>@Model.WoodStack?.WoodType</dd>
+    <dt>Объём</dt>
+    <dd>@Model.Volume</dd>
+</dl>
+<form method="post" asp-action="Delete">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-danger">Удалить</button>
+    <a href="/WoodMovements" class="btn btn-secondary">Отмена</a>
+</form>

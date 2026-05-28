@@ -1,0 +1,62 @@
+﻿@{
+    ViewData["Title"] = "Приход древесины";
+}
+<h2>➕ Приход древесины (расчёт объёма)</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form method="post" action="/WoodMovements/Income">
+    @Html.AntiForgeryToken()
+
+    <div class="form-group">
+        <label>Тип древесины</label>
+        @* ИСПРАВЛЕНИЕ ЗДЕСЬ: заменяем select на input + datalist *@
+        <input type="text" name="woodType" class="form-control"
+               list="woodTypesList" required autocomplete="off"
+               placeholder="Введите или выберите тип (Берёза, Сосна...)" />
+        <datalist id="woodTypesList">
+            <option value="Берёза">
+            <option value="Сосна">
+            <option value="Ель">
+            <option value="Дуб">
+            <option value="Лиственница">
+        </datalist>
+        <small class="form-text text-muted">Вы можете выбрать из списка или ввести свой вариант.</small>
+    </div>
+
+    <div class="form-group">
+        <label>Поставщик</label>
+        <input type="text" name="supplier" class="form-control" placeholder="Например: ООО ЛесПром" />
+    </div>
+
+    <div class="form-group">
+        <label>Длина (м)</label>
+        <input type="number" step="0.01" name="length" class="form-control" required placeholder="например: 2.50" />
+    </div>
+
+    <div class="form-group">
+        <label>Ширина (м)</label>
+        <input type="number" step="0.01" name="width" class="form-control" required />
+    </div>
+
+    <div class="form-group">
+        <label>Высота (м)</label>
+        <input type="number" step="0.01" name="height" class="form-control" required />
+    </div>
+
+    <div class="form-group">
+        <label>Коэффициент полнодревесности (0.5–0.8)</label>
+        <input type="number" step="0.01" name="coefficient" class="form-control" value="0.65" required />
+    </div>
+
+    <div class="form-group">
+        <label>Комментарий</label>
+        <textarea name="comment" class="form-control" rows="2"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Рассчитать и сохранить</button>
+    <a href="/WoodMovements" class="btn btn-secondary">Отмена</a>
+</form>

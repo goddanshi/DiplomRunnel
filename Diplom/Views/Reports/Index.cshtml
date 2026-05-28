@@ -1,0 +1,102 @@
+﻿@{
+    ViewData["Title"] = "Отчёты";
+}
+
+<div class="page-header">
+    <h2>📊 Отчёты информационной системы</h2>
+</div>
+
+<div class="reports-grid">
+    <a href="/Reports/Stock" class="report-card">
+        <div class="report-icon">📦</div>
+        <h3>Остатки сырья</h3>
+        <p>Текущие запасы по штабелям, распределение по типам древесины</p>
+        <span class="report-link">Перейти →</span>
+    </a>
+    <a href="/Reports/Shipments" class="report-card">
+        <div class="report-icon">📈</div>
+        <h3>Динамика отгрузок</h3>
+        <p>Отгрузки по месяцам, сезонность, тренды</p>
+        <span class="report-link">Перейти →</span>
+    </a>
+    <a href="/Reports/Efficiency" class="report-card">
+        <div class="report-icon">⚙️</div>
+        <h3>Эффективность производства</h3>
+        <p>Коэффициент выхода шпона по типам древесины</p>
+        <span class="report-link">Перейти →</span>
+    </a>
+    <a href="/Reports/Movements" class="report-card">
+        <div class="report-icon">📋</div>
+        <h3>Движения по штабелям</h3>
+        <p>История приходов и расходов с фильтрацией</p>
+        <span class="report-link">Перейти →</span>
+    </a>
+    <a href="/Reports/TopCustomers" class="report-card">
+        <div class="report-icon">🏆</div>
+        <h3>Рейтинг покупателей</h3>
+        <p>Топ покупателей по объёму отгрузок</p>
+        <span class="report-link">Перейти →</span>
+    </a>
+    <a href="/Reports/FinishedGoodsStock" class="report-card">
+        <div class="report-icon">📦</div>
+        <h3>Остатки готовой продукции</h3>
+        <p>Производство, отгрузки и остатки шпона на любую дату</p>
+        <span class="report-link">Перейти →</span>
+    </a>
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: 30px;
+    }
+
+    .reports-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 24px;
+    }
+
+    .report-card {
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        text-decoration: none;
+        color: #1e2a3a;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s;
+        display: block;
+    }
+
+        .report-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+            border-color: #2d6a4f;
+        }
+
+    .report-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .report-card h3 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+    }
+
+    .report-card p {
+        color: #64748b;
+        font-size: 13px;
+        margin-bottom: 16px;
+        line-height: 1.5;
+    }
+
+    .report-link {
+        color: #2d6a4f;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .report-card:hover .report-link {
+        text-decoration: underline;
+    }
+</style>

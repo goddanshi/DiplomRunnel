@@ -1,0 +1,52 @@
+﻿@model IEnumerable<Diplom.Models.WoodMovement>
+@{
+    ViewData["Title"] = "Движения древесины";
+}
+<div class="page-header">
+    <h2>📋 Движения древесины</h2>
+    <a href="/WoodMovements/Income" class="btn btn-primary">➕ Приход</a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Тип</th>
+            <th>Древесина</th>
+            <th>Объём (м³)</th>
+            <th>Комментарий</th>
+            <th>Пользователь</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var m in Model)
+        {
+            <tr>
+                <td>@m.MovementDate.ToString("dd.MM.yyyy HH:mm")</td>
+                <td>@(m.MovementType == "Income" ? "➕ Приход" : "➖ Расход")</td>
+                <td>@(m.WoodStack?.WoodType ?? "—")</td>
+                <td>@m.Volume.ToString("F2")</td>
+                <td>@m.Comment</td>
+                <td>@(m.CreatedByUser?.FullName ?? m.CreatedByUser?.UserName ?? "—")</td>
+                <td class="action-buttons">
+                    <a href="/WoodMovements/Edit/@m.Id" class="btn btn-sm btn-outline-primary">✏️</a>
+                    <form method="post" action="/WoodMovements/DeleteConfirmed/@m.Id" style="display:inline;" onsubmit="return confirm('Удалить движение?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-danger">🗑️</button>
+                    </form>
+                    <a href="/WoodMovements/GenerateAct/@m.Id" class="btn btn-sm btn-outline-info">📄 Акт</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

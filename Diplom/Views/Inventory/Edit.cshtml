@@ -1,0 +1,88 @@
+﻿@model List<Diplom.Models.InventoryItem>
+@{
+    ViewData["Title"] = "Ввод фактических остатков";
+    var inventory = ViewBag.Inventory as Diplom.Models.Inventory;
+}
+
+<div class="page-header">
+    <h2>✏️ Инвентаризация № @inventory?.InventoryNumber</h2>
+    <a href="/Inventory" class="btn btn-secondary">← Назад</a>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form method="post" action="/Inventory/SaveResults/@inventory?.Id">
+    @Html.AntiForgeryToken()
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Наименование</th>
+                <th>Учётный остаток (м³)</th>
+                <th>Фактический остаток (м³)</th>
+                <th>Расхождение</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Count; i++)
+            {
+                <input type="hidden" name="itemIds" value="@Model[i].ItemId" />
+                <tr>
+                    <td>@Model[i].ItemName</td>
+                    <td>@Model[i].AccountingVolume.ToString("F2")</td>
+                    <td>
+                        <input type="number" step="0.01" name="actualVolumes" class="form-control actual-volume" data-index="@i" data-accounting="@Model[i].AccountingVolume.ToString(System.Globalization.CultureInfo.InvariantCulture)" value="@Model[i].AccountingVolume.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
+                    </td>
+                    <td><span id="diff_@i" class="diff-value">0.00</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">💾 Сохранить результаты</button>
+        <a href="/Inventory" class="btn btn-secondary">Отмена</a>
+    </div>
+</form>
+
+<script>
+    // Функция расчёта расхождения
+    function calculateDiff(index, accounting, value) {
+        var actual = parseFloat(value) || 0;
+        var diff = actual - accounting;
+        var diffSpan = document.getElementById('diff_' + index);
+        if (diffSpan) {
+            diffSpan.textContent = diff.toFixed(2);
+            if (diff > 0) {
+                diffSpan.style.color = '#28a745';
+                diffSpan.style.fontWeight = 'bold';
+            } else if (diff < 0) {
+                diffSpan.style.color = '#dc3545';
+                diffSpan.style.fontWeight = 'bold';
+            } else {
+                diffSpan.style.color = '#6c757d';
+                diffSpan.style.fontWeight = 'normal';
+            }
+        }
+    }
+    
+    // Инициализация обработчиков
+    document.addEventListener('DOMContentLoaded', function() {
+        var inputs = document.querySelectorAll('.actual-volume');
+        inputs.forEach(function(input) {
+            var index = parseInt(input.getAttribute('data-index'));
+            var accounting = parseFloat(input.getAttribute('data-accounting'));
+            
+            // Обновляем при изменении
+            input.addEventListener('input', function() {
+                calculateDiff(index, accounting, input.value);
+            });
+            
+            // Вызываем один раз для начального значения
+            calculateDiff(index, accounting, input.value);
+        });
+    });
+</script>

@@ -1,0 +1,267 @@
+﻿@{
+    ViewData["Title"] = "Новая отгрузка";
+    var products = ViewBag.Products as List<Diplom.Models.FinishedGoodsStock>;
+    var generatedNumber = ViewBag.GeneratedInvoiceNumber as string;
+}
+
+<div class="page-header">
+    <h2>🚛 Новая отгрузка</h2>
+    <a href="/Shipment" class="btn btn-secondary">← Назад</a>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" id="shipmentForm">
+            @Html.AntiForgeryToken()
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Номер накладной *</label>
+                    <input type="text" name="invoiceNumber" class="form-control" value="@generatedNumber" readonly style="background: #e8f5e9; font-weight: 500;" />
+                    <small class="text-muted">Номер генерируется автоматически</small>
+                </div>
+                <div class="form-group">
+                    <label>Покупатель *</label>
+                    <input type="text" name="customer" class="form-control" required placeholder="Наименование организации" />
+                </div>
+                <div class="form-group">
+                    <label>Дата отгрузки</label>
+                    <input type="date" name="shipmentDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Комментарий</label>
+                <textarea name="comment" class="form-control" rows="2"></textarea>
+            </div>
+
+            <hr />
+
+            <h4>📦 Позиции отгрузки</h4>
+            <div id="itemsContainer">
+                <div class="item-row" data-index="0">
+                    <div class="row-fields">
+                        <select name="productIds[0]" class="form-control product-select" required>
+                            <option value="">-- Выберите продукцию --</option>
+                            @if (products != null)
+                            {
+                                foreach (var p in products)
+                                {
+                                    var volumeValue = p.Volume.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                                    <option value="@p.Id" data-max="@volumeValue">
+                                        @p.WoodType — @p.SheetLength.ToString("F2")×@p.SheetWidth.ToString("F2") м (доступно: @p.Volume.ToString("F2") м³)
+                                    </option>
+                                }
+                            }
+                        </select>
+                        <input type="number" step="0.01" name="volumes[0]" class="form-control volume-input" placeholder="Объём (м³)" required />
+                        <button type="button" class="btn btn-danger remove-row">🗑️</button>
+                    </div>
+                    <div class="volume-error" style="color: #dc3545; font-size: 12px; display: none;"></div>
+                </div>
+            </div>
+            <button type="button" id="addRowBtn" class="btn btn-outline-primary">+ Добавить позицию</button>
+
+            <hr />
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">✅ Сохранить отгрузку</button>
+                <a href="/Shipment" class="btn btn-secondary">❌ Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let rowIndex = 1;
+
+    function checkVolume(row) {
+        var select = row.querySelector('.product-select');
+        var volumeInput = row.querySelector('.volume-input');
+        var errorSpan = row.querySelector('.volume-error');
+
+        if (select.value && volumeInput.value) {
+            var maxVolumeStr = select.options[select.selectedIndex].getAttribute('data-max') || '0';
+            var maxVolume = parseFloat(maxVolumeStr.replace(',', '.')) || 0;
+            var enteredVolume = parseFloat(volumeInput.value.replace(',', '.')) || 0;
+
+            if (enteredVolume > maxVolume) {
+                errorSpan.style.display = 'block';
+                errorSpan.innerText = `Недостаточно продукции. Доступно: ${maxVolume.toFixed(2)} м³`;
+                volumeInput.style.borderColor = '#dc3545';
+            } else {
+                errorSpan.style.display = 'none';
+                volumeInput.style.borderColor = '';
+            }
+        }
+    }
+
+    function addRow() {
+        var container = document.getElementById('itemsContainer');
+        var originalRow = container.querySelector('.item-row');
+        var newRow = originalRow.cloneNode(true);
+
+        // Обновляем индексы
+        newRow.setAttribute('data-index', rowIndex);
+        newRow.querySelector('select').name = `productIds[${rowIndex}]`;
+        newRow.querySelector('input[type="number"]').name = `volumes[${rowIndex}]`;
+        newRow.querySelectorAll('input, select').forEach(el => el.value = '');
+
+        var errorSpan = newRow.querySelector('.volume-error');
+        if (errorSpan) errorSpan.style.display = 'none';
+
+        container.appendChild(newRow);
+        rowIndex++;
+
+        // Добавляем обработчики
+        var newSelect = newRow.querySelector('.product-select');
+        var newVolume = newRow.querySelector('.volume-input');
+        if (newSelect) newSelect.addEventListener('change', () => checkVolume(newRow));
+        if (newVolume) newVolume.addEventListener('input', () => checkVolume(newRow));
+    }
+
+    document.getElementById('addRowBtn').addEventListener('click', addRow);
+
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-row')) {
+            var rows = document.querySelectorAll('.item-row');
+            if (rows.length > 1) {
+                e.target.closest('.item-row').remove();
+            } else {
+                alert('Должна быть хотя бы одна позиция');
+            }
+        }
+    });
+
+    document.querySelectorAll('.item-row').forEach(row => {
+        var select = row.querySelector('.product-select');
+        var volume = row.querySelector('.volume-input');
+        if (select) select.addEventListener('change', () => checkVolume(row));
+        if (volume) volume.addEventListener('input', () => checkVolume(row));
+    });
+</script>
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    .card-body {
+        padding: 24px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+    }
+
+    .item-row {
+        margin-bottom: 12px;
+    }
+
+    .row-fields {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+        .row-fields .product-select {
+            flex: 2;
+        }
+
+        .row-fields .volume-input {
+            flex: 1;
+        }
+
+        .row-fields .remove-row {
+            flex: 0;
+            padding: 8px 16px;
+        }
+
+    .btn-primary {
+        background: #2d6a4f;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-outline-primary {
+        background: transparent;
+        border: 1px solid #2d6a4f;
+        color: #2d6a4f;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 8px;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .text-muted {
+        color: #6c757d;
+        font-size: 12px;
+    }
+
+    hr {
+        margin: 20px 0;
+    }
+</style>

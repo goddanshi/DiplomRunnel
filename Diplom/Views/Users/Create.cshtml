@@ -1,0 +1,112 @@
+﻿@model Diplom.ViewModels.UserCreateViewModel
+@{
+    ViewData["Title"] = "Добавление пользователя";
+}
+<div class="page-header">
+    <h1>➕ Добавление пользователя</h1>
+    <a href="/Users" class="btn btn-secondary">← Назад</a>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="form-container">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="form-group">
+            <label>Email (логин) *</label>
+            <input type="email" name="email" class="form-control" value="@(ViewBag.FormData?.email ?? "")" required />
+        </div>
+        <div class="form-group">
+            <label>Пароль *</label>
+            <input type="password" name="password" class="form-control" required />
+        </div>
+        <div class="form-group">
+            <label>ФИО *</label>
+            <input type="text" name="fullName" class="form-control" value="@(ViewBag.FormData?.fullName ?? "")" required />
+        </div>
+        <div class="form-group">
+            <label>Должность *</label>
+            <input type="text" name="position" class="form-control" value="@(ViewBag.FormData?.position ?? "")" required />
+        </div>
+        <div class="form-group">
+            <label>Роль *</label>
+            <select name="role" class="form-control" required>
+                <option value="">-- Выберите роль --</option>
+                @if (ViewBag.Roles != null)
+                {
+                    foreach (var r in ViewBag.Roles)
+                    {
+                        <option value="@r" @(ViewBag.FormData?.role == r ? "selected" : "")>@r</option>
+                    }
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Создать</button>
+        <a href="/Users" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .form-container {
+        max-width: 550px;
+        background: white;
+        padding: 25px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #1e2a3a;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background: #0d6efd;
+        color: white;
+        padding: 6px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 6px 16px;
+        text-decoration: none;
+        border-radius: 4px;
+        display: inline-block;
+        margin-left: 8px;
+    }
+</style>

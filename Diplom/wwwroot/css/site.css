@@ -1,0 +1,164 @@
+﻿/* Основные стили */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #e9ecef;
+    color: #212529;
+    font-size: 14px;
+}
+
+.app-header {
+    background: #1e2a3a;
+    border-bottom: 1px solid #0d171f;
+    padding: 0 20px;
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+}
+
+    .logo-text small {
+        font-size: 11px;
+        color: #8a9bb0;
+        display: block;
+    }
+
+.nav-item {
+    color: #cbd5e1;
+    text-decoration: none;
+    padding: 6px 16px;
+    font-size: 13px;
+    border-radius: 4px;
+    margin-left: 5px;
+}
+
+    .nav-item:hover {
+        background: #2a3a4a;
+        color: white;
+    }
+
+.app-main {
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 0 20px;
+    min-height: calc(100vh - 110px);
+}
+
+.app-footer {
+    background: #f1f3f5;
+    border-top: 1px solid #dee2e6;
+    padding: 12px;
+    text-align: center;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+    .page-header h1 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #212529;
+    }
+
+.widget-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.widget {
+    background: white;
+    border: 1px solid #dee2e6;
+    padding: 20px;
+}
+
+.widget-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.widget h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 6px;
+}
+
+.widget p {
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+.btn {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.btn-outline {
+    border-color: #6c757d;
+    color: #495057;
+    background: white;
+}
+
+.btn-disabled {
+    background: #e9ecef;
+    border-color: #dee2e6;
+    color: #adb5bd;
+    cursor: not-allowed;
+}
+
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 11px;
+}
+
+.quick-actions {
+    background: white;
+    border: 1px solid #dee2e6;
+    padding: 16px;
+}
+
+    .quick-actions h4 {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #495057;
+    }

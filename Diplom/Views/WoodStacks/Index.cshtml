@@ -1,0 +1,27 @@
+﻿@model IEnumerable<Diplom.Models.WoodStack>
+@{
+    ViewData["Title"] = "Штабеля древесины";
+}
+<div class="page-header">
+    <h2>🪵 Штабеля древесины</h2>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Тип древесины</th>
+            <th>Текущий объём (м³)</th>
+            <th>Дата обновления</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var stack in Model)
+        {
+            <tr>
+                <td>@stack.WoodType</td>
+                <td>@stack.CurrentVolume.ToString("F2")</td>
+                <td>@stack.UpdatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+            </tr>
+        }
+    </tbody>
+</table>

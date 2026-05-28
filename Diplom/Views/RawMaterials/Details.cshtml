@@ -1,0 +1,143 @@
+﻿@model Diplom.Models.RawMaterial
+@{
+    ViewData["Title"] = "Детали партии";
+}
+<div class="page-header">
+    <h1>🔍 Детали партии</h1>
+</div>
+<div class="card">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Номер партии</dt>
+            <dd class="col-sm-9">@Model.BatchNumber</dd>
+
+            <dt class="col-sm-3">Дата поступления</dt>
+            <dd class="col-sm-9">@Model.ArrivalDate.ToString("dd.MM.yyyy")</dd>
+
+            <dt class="col-sm-3">Тип древесины</dt>
+            <dd class="col-sm-9">@Model.WoodType</dd>
+
+            <dt class="col-sm-3">Объём (м³)</dt>
+            <dd class="col-sm-9">@Model.Volume.ToString("N2")</dd>
+
+            <dt class="col-sm-3">Сорт</dt>
+            <dd class="col-sm-9">
+                @if (Model.Grade == 1)
+                {
+                    <span class="badge badge-grade-1">1 сорт</span>
+                }
+                else if (Model.Grade == 2)
+                {
+
+                    <span class="badge badge-grade-2">2 сорт</span>
+                }
+                else
+                {
+
+                    <span class="badge badge-grade-3">3 сорт</span>
+                }
+            </dd>
+
+            <dt class="col-sm-3">Поставщик</dt>
+            <dd class="col-sm-9">@(string.IsNullOrEmpty(Model.Supplier) ? "—" : Model.Supplier)</dd>
+
+            <dt class="col-sm-3">Статус</dt>
+            <dd class="col-sm-9"><span class="badge badge-status">@Model.Status</span></dd>
+
+            <dt class="col-sm-3">Комментарий</dt>
+            <dd class="col-sm-9">@(string.IsNullOrEmpty(Model.Comment) ? "—" : Model.Comment)</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a href="/RawMaterials" class="btn btn-secondary">← Назад к списку</a>
+        <a href="/RawMaterials/Edit/@Model.Id" class="btn btn-primary">✏️ Редактировать</a>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: 20px;
+    }
+
+    .card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .card-footer {
+        padding: 15px 20px;
+        background: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    .col-sm-3 {
+        width: 25%;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .col-sm-9 {
+        width: 75%;
+        color: #212529;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+    }
+
+    .badge-grade-1 {
+        background: #d1e7dd;
+        color: #0a3622;
+    }
+
+    .badge-grade-2 {
+        background: #fff3cd;
+        color: #664d03;
+    }
+
+    .badge-grade-3 {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .badge-status {
+        background: #cfe2ff;
+        color: #084298;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 6px 12px;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 13px;
+        margin-right: 8px;
+    }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        color: white;
+        border: none;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+    }
+</style>

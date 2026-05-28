@@ -1,0 +1,300 @@
+﻿@{
+    ViewData["Title"] = "Производственная смена";
+}
+<h2>🏭 Производственная смена</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" id="productionForm">
+            @Html.AntiForgeryToken()
+
+            <!-- БЛОК 1: СПИСАНИЕ СЫРЬЯ -->
+            <div class="form-section">
+                <h3>📦 Списание сырья (Чураки)</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Тип древесины (штабель)</label>
+                        <select name="woodStackId" id="woodStackId" class="form-control" required>
+                            <option value="">-- Выберите штабель --</option>
+                            @if (ViewBag.Stacks != null)
+                            {
+                                foreach (var stack in ViewBag.Stacks)
+                                {
+                                    <option value="@stack.Id">
+                                        @stack.WoodType (доступно: @stack.CurrentVolume.ToString("F2") м³)
+                                    </option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Длина (м)</label>
+                        <input type="text" step="0.01" name="LogLength" id="LogLength" class="form-control" value="" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Ширина (м)</label>
+                        <input type="text" step="0.01" name="LogWidth" id="LogWidth" class="form-control" value="" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Высота (м)</label>
+                        <input type="text" step="0.01" name="LogHeight" id="LogHeight" class="form-control" value="" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Коэффициент полнодревесности (0.5–0.8)</label>
+                        <input type="text" step="0.01" name="WoodDensityCoeff" id="WoodDensityCoeff" class="form-control" value="0.65" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="result-label">📊 Объём сырья (м³)</label>
+                        <input type="text" id="calculatedRawVolume" class="form-control result-field" readonly disabled />
+                    </div>
+                </div>
+            </div>
+
+            <!-- БЛОК 2: ОПРИХОДОВАНИЕ ПРОДУКЦИИ -->
+            <div class="form-section">
+                <h3>🪵 Оприходование продукции (Шпон)</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Длина листа (м)</label>
+                        <select id="SheetLength" name="SheetLength" class="form-control" required>
+                            <option value="1.22">1220 мм (1.22 м)</option>
+                            <option value="1.525">1525 мм (1.525 м)</option>
+                            <option value="1.83">1830 мм (1.83 м)</option>
+                            <option value="2.44">2440 мм (2.44 м)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ширина листа (м)</label>
+                        <select id="SheetWidth" name="SheetWidth" class="form-control" required>
+                            <option value="1.22">1220 мм (1.22 м)</option>
+                            <option value="1.525">1525 мм (1.525 м)</option>
+                        </select>
+                    </div>
+                    <!-- Количество листов в пачке - это новый параметр! -->
+                    <div class="form-group">
+                        <label>Количество листов в пачке, шт.</label>
+                        <input type="number" step="1" name="SheetsCount" id="SheetsCount" class="form-control" value="20" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Высота пачки (м)</label>
+                        <input type="text" step="0.01" name="SheetStackHeight" id="SheetStackHeight" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Коэф. плотности укладки (0.7–0.95)</label>
+                        <input type="text" step="0.01" name="DensityCoefficient" id="DensityCoefficient" class="form-control" value="0.85" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="result-label">📊 Объём шпона (м³)</label>
+                        <input type="text" id="calculatedVeneerVolume" class="form-control result-field" readonly disabled />
+                    </div>
+                </div>
+            </div>
+
+            <!-- БЛОК 3: РЕЗУЛЬТАТЫ -->
+            <div class="form-section result-section">
+                <h3>📈 Результаты эффективности</h3>
+                <div class="result-row">
+                    <div class="result-item">
+                        <label>Коэффициент выхода:</label>
+                        <span id="efficiencyValue" class="result-value">—</span>
+                    </div>
+                    <div class="result-item">
+                        <label>Оценка:</label>
+                        <span id="efficiencyGrade" class="result-badge">—</span>
+                    </div>
+                    <div class="result-item">
+                        <label>Отходы (м³):</label>
+                        <span id="wasteValue" class="result-value">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Дата смены</label>
+                <input type="date" name="productionDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" readonly />
+                <input type="hidden" name="productionDate" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                <small class="text-muted">Дата не может быть изменена</small>
+            </div>
+
+            <div class="form-group">
+                <label>Комментарий</label>
+                <textarea name="comment" class="form-control" rows="2">Стандартные отходы на лущении</textarea>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">💾 Сохранить смену</button>
+                <a href="/Production" class="btn btn-secondary">📋 Все смены</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .form-section {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        border: 1px solid #e2e8f0;
+    }
+
+        .form-section h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #1e2a3a;
+        }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+    }
+
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .result-label {
+        font-weight: 700;
+        color: #2d6a4f;
+        background: #e8f5e9;
+        padding: 8px 12px;
+        border-radius: 8px;
+    }
+
+    .result-field {
+        background: #e8f5e9;
+        font-weight: 600;
+        color: #1e2a3a;
+    }
+
+    .result-section {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    }
+
+    .result-row {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        align-items: baseline;
+    }
+
+    .result-item {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+
+    .result-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1e2a3a;
+    }
+
+    .result-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .badge-high {
+        background: #d1e7dd;
+        color: #0a3622;
+    }
+
+    .badge-medium {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .badge-low {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .btn-primary {
+        background: #2d6a4f;
+        border: none;
+    }
+
+        .btn-primary:hover {
+            background: #1b4332;
+        }
+
+    .btn-secondary {
+        background: #6c757d;
+    }
+</style>
+
+<script>
+    function recalculate() {
+        // Вспомогательная функция для преобразования чисел с запятой
+        function toNumber(value) {
+            if (!value) return 0;
+            value = value.toString().trim().replace(',', '.');
+            var num = parseFloat(value);
+            return isNaN(num) ? 0 : num;
+        }
+
+        // Получаем значения (с учётом запятых)
+        var logLength = toNumber(document.getElementById('LogLength').value);
+        var logWidth = toNumber(document.getElementById('LogWidth').value);
+        var logHeight = toNumber(document.getElementById('LogHeight').value);
+        var woodCoeff = toNumber(document.getElementById('WoodDensityCoeff').value);
+        var sheetLength = toNumber(document.getElementById('SheetLength').value);
+        var sheetWidth = toNumber(document.getElementById('SheetWidth').value);
+        var sheetHeight = toNumber(document.getElementById('SheetStackHeight').value);
+        var densityCoeff = toNumber(document.getElementById('DensityCoefficient').value);
+
+        // Расчёт объёмов
+        var rawVolume = logLength * logWidth * logHeight * woodCoeff;
+        var veneerVolume = sheetLength * sheetWidth * sheetHeight * densityCoeff;
+
+        // Отображаем рассчитанные объёмы
+        document.getElementById('calculatedRawVolume').value = rawVolume.toFixed(2);
+        document.getElementById('calculatedVeneerVolume').value = veneerVolume.toFixed(2);
+
+        // Проверка и отображение эффективности
+        var waste = rawVolume - veneerVolume;
+        var efficiency = rawVolume > 0 ? veneerVolume / rawVolume : 0;
+
+        document.getElementById('efficiencyValue').innerHTML = efficiency.toFixed(2);
+        document.getElementById('wasteValue').innerHTML = waste.toFixed(2) + ' м³';
+
+        var gradeSpan = document.getElementById('efficiencyGrade');
+        if (efficiency >= 0.40) {
+            gradeSpan.innerHTML = '🟢 Хорошо (≥40%)';
+            gradeSpan.className = 'result-badge badge-high';
+        } else if (efficiency >= 0.25) {
+            gradeSpan.innerHTML = '🟡 Средне (25-40%)';
+            gradeSpan.className = 'result-badge badge-medium';
+        } else {
+            gradeSpan.innerHTML = '🔴 Плохо (<25%)';
+            gradeSpan.className = 'result-badge badge-low';
+        }
+    }
+
+    // Назначаем обработчики событий после загрузки страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        var inputs = ['LogLength', 'LogWidth', 'LogHeight', 'WoodDensityCoeff',
+                     'SheetLength', 'SheetWidth', 'SheetStackHeight', 'DensityCoefficient'];
+        for (var i = 0; i < inputs.length; i++) {
+            var el = document.getElementById(inputs[i]);
+            if (el) {
+                el.addEventListener('input', recalculate);
+            }
+        }
+        recalculate(); // Выполняем начальный расчёт
+    });
+</script>

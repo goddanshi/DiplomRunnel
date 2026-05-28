@@ -1,0 +1,142 @@
+﻿@model Diplom.Models.ShipmentOrder
+@{
+    ViewData["Title"] = "Детали отгрузки";
+}
+
+<div class="page-header">
+    <h2>📄 Детали отгрузки #{@Model.InvoiceNumber}</h2>
+    <div>
+        <a href="/Shipment/Edit/@Model.Id" class="btn btn-primary">✏️ Редактировать</a>
+        <a href="/Shipment" class="btn btn-secondary">← Назад</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="details-grid">
+            <div class="details-item">
+                <span class="details-label">Номер накладной:</span>
+                <span class="details-value">@Model.InvoiceNumber</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Покупатель:</span>
+                <span class="details-value">@Model.Customer</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Дата отгрузки:</span>
+                <span class="details-value">@Model.ShipmentDate.ToString("dd.MM.yyyy")</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Кто создал:</span>
+                <span class="details-value">@(Model.CreatedByUser?.FullName ?? Model.CreatedByUser?.UserName)</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Комментарий:</span>
+                <span class="details-value">@(Model.Comment ?? "—")</span>
+            </div>
+        </div>
+        
+        <hr />
+        
+        <h4>📦 Позиции отгрузки</h4>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Тип древесины</th>
+                    <th>Размер листа (м)</th>
+                    <th>Объём (м³)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.FinishedGoodsStock?.WoodType</td>
+                        <td>@item.FinishedGoodsStock?.SheetLength.ToString("F2") × @item.FinishedGoodsStock?.SheetWidth.ToString("F2")</td>
+                        <td>@item.Volume.ToString("F2")</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="2">Итого:</th>
+                    <th>@Model.Items.Sum(i => i.Volume).ToString("F2") м³</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+    .card-body {
+        padding: 24px;
+    }
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    .details-item {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .details-label {
+        font-weight: 600;
+        color: #64748b;
+        min-width: 140px;
+    }
+    .details-value {
+        color: #1e2a3a;
+        font-weight: 500;
+    }
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+    }
+    .data-table th, .data-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #e2e8f0;
+        text-align: left;
+    }
+    .data-table th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #1e2a3a;
+    }
+    .data-table tfoot {
+        background: #f8fafc;
+        font-weight: 600;
+    }
+    .btn-primary {
+        background: #2d6a4f;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+    }
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+    }
+    hr {
+        margin: 20px 0;
+    }
+</style>

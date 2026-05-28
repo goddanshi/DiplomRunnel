@@ -1,0 +1,22 @@
+﻿@{
+    ViewData["Title"] = "Вход";
+}
+<h2>Авторизация</h2>
+
+@if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+{
+    <div class="alert alert-danger">@ViewData.ModelState[string.Empty].Errors[0].ErrorMessage</div>
+}
+
+<form method="post">
+    @Html.AntiForgeryToken()
+    <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" class="form-control" required autofocus />
+    </div>
+    <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" name="password" class="form-control" required />
+    </div>
+    <button type="submit" class="btn btn-primary">Войти</button>
+</form>
